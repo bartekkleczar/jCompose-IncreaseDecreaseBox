@@ -1,5 +1,6 @@
 package pl.klenczi.jcomposeincreasedecreasebox
 
+import android.content.Context
 import android.os.Bundle
 import android.util.Log
 import androidx.activity.ComponentActivity
@@ -26,15 +27,31 @@ import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material3.Text
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.*
+import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.layout.layoutId
+import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.constraintlayout.compose.ConstraintLayout
 import androidx.constraintlayout.compose.ConstraintSet
+import androidx.preference.PreferenceManager
+
+
+class MyPreferences(context: Context) {
+    private val sharedPreferences = PreferenceManager.getDefaultSharedPreferences(context)
+
+    fun saveInt(key: String, value: Int) {
+        sharedPreferences.edit().putInt(key, value).apply()
+    }
+
+    fun getInt(key: String, defaultValue: Int): Int {
+        return sharedPreferences.getInt(key, defaultValue)
+    }
+}
 
 class MainActivity : ComponentActivity() {
     override fun onCreate(savedInstanceState: Bundle?) {
@@ -43,6 +60,11 @@ class MainActivity : ComponentActivity() {
             val sizeChangeValue = 10.dp
             val cornerChangeValue = (7.25).dp
             val sizeBorderValue = 150.dp
+
+            val context = LocalContext.current
+            val preferences = remember { MyPreferences(context) }
+            var clickCount by rememberSaveable { mutableIntStateOf(preferences.getInt("clickCount", 0)) }
+
 
             val constraints = ConstraintSet {
                 val countText = createRefFor("countText")
@@ -56,7 +78,6 @@ class MainActivity : ComponentActivity() {
             }
 
             var cornerRadiusState by remember { mutableStateOf(0.dp) }
-            var clickCountState by remember { mutableIntStateOf(0) }
             var sizeState by remember { mutableStateOf(150.dp) }
             val size by animateDpAsState(
                 targetValue = sizeState,
@@ -79,7 +100,7 @@ class MainActivity : ComponentActivity() {
             val interactionSource = remember { MutableInteractionSource() }
             ConstraintLayout(constraints, modifier = Modifier.fillMaxSize()) {
                 Text(
-                    text = "$clickCountState",
+                    text = "${preferences.getInt("clickCount", clickCount)}",
                     fontSize = 80.sp,
                     fontWeight = FontWeight.Bold,
                     modifier = Modifier.layoutId("countText")
@@ -110,14 +131,15 @@ class MainActivity : ComponentActivity() {
                                 fontWeight = FontWeight.Bold,
                                 modifier = Modifier
                                     .clickable(
-                                    interactionSource = interactionSource,
-                                    indication = null
-                                ) {
-                                    clickCountState += 1
-                                    sizeState += sizeChangeValue
-                                    cornerRadiusState += cornerChangeValue
-                                    //Log.i("Main", "corner: $cornerRadiusState, size: $sizeState")
-                                }
+                                        interactionSource = interactionSource,
+                                        indication = null
+                                    ) {
+                                        clickCount += 1
+                                        preferences.saveInt("clickCount", clickCount)
+                                        sizeState += sizeChangeValue
+                                        cornerRadiusState += cornerChangeValue
+                                        //Log.i("Main", "corner: $cornerRadiusState, size: $sizeState")
+                                    }
                             )
                             Text(
                                 text = "DECREASE",
@@ -125,15 +147,16 @@ class MainActivity : ComponentActivity() {
                                 fontWeight = FontWeight.Bold,
                                 modifier = Modifier
                                     .clickable(
-                                    interactionSource = interactionSource,
-                                    indication = null
-                                ) {
-                                    clickCountState += 1
-                                    if (cornerRadiusState >= (cornerChangeValue * 1) && sizeState > sizeBorderValue) {
-                                        cornerRadiusState -= cornerChangeValue
-                                        sizeState -= sizeChangeValue
+                                        interactionSource = interactionSource,
+                                        indication = null
+                                    ) {
+                                        clickCount += 1
+                                        preferences.saveInt("clickCount", clickCount)
+                                        if (cornerRadiusState >= (cornerChangeValue * 1) && sizeState > sizeBorderValue) {
+                                            cornerRadiusState -= cornerChangeValue
+                                            sizeState -= sizeChangeValue
+                                        }
                                     }
-                                }
                             )
                         }
                     }
