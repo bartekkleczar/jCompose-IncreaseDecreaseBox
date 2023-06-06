@@ -16,8 +16,12 @@ import androidx.compose.foundation.interaction.MutableInteractionSource
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxSize
+import androidx.compose.foundation.layout.height
+import androidx.compose.foundation.layout.offset
 import androidx.compose.foundation.layout.size
+import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material3.Text
 import androidx.compose.runtime.mutableStateOf
@@ -25,80 +29,113 @@ import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.layout.layoutId
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import androidx.constraintlayout.compose.ConstraintLayout
+import androidx.constraintlayout.compose.ConstraintSet
 
 class MainActivity : ComponentActivity() {
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
         setContent {
-            var cornerRadiusState by remember { mutableStateOf(60.dp) }
-            var sizeState by remember { mutableStateOf(200.dp) }
+            val sizeChangeValue = 10.dp
+            val cornerChangeValue = (7.25).dp
+            val sizeBorderValue = 150.dp
+
+            val constraints = ConstraintSet {
+                val countText = createRefFor("countText")
+                val countTextVertically = createGuidelineFromTop(0.01f)
+
+                constrain(countText) {
+                    top.linkTo(countTextVertically)
+                    start.linkTo(parent.start)
+                    end.linkTo(parent.end)
+                }
+            }
+
+            var cornerRadiusState by remember { mutableStateOf(0.dp) }
+            var clickCountState by remember { mutableIntStateOf(0) }
+            var sizeState by remember { mutableStateOf(150.dp) }
             val size by animateDpAsState(
                 targetValue = sizeState,
                 tween(
-                    durationMillis = 100
+                    durationMillis = 350
                 )
             )
             val infiniteTransition = rememberInfiniteTransition()
             val color by infiniteTransition.animateColor(
-                initialValue = Color(0xFF536DFE),
-                targetValue = Color(0xFF009688),
+                initialValue = Color.Red,
+                targetValue = Color.Green,
                 animationSpec = infiniteRepeatable(
                     tween(
-                        durationMillis = 2000
+                        durationMillis = 10_000
                     ),
                     repeatMode = RepeatMode.Reverse
 
                 )
             )
             val interactionSource = remember { MutableInteractionSource() }
-            Column(
-                modifier = Modifier
-                    .fillMaxSize(),
-                horizontalAlignment = Alignment.CenterHorizontally,
-                verticalArrangement = Arrangement.Center
-            ) {
-                Box(
-                    modifier = Modifier
-                        .size(size)
-                        .background(color, shape = RoundedCornerShape(cornerRadiusState)),
-                    contentAlignment = Alignment.Center
+            ConstraintLayout(constraints, modifier = Modifier.fillMaxSize()) {
+                Text(
+                    text = "$clickCountState",
+                    fontSize = 80.sp,
+                    fontWeight = FontWeight.Bold,
+                    modifier = Modifier.layoutId("countText")
                 )
-                {
-                    Column() {
-                        Text(
-                            text = "INCREASE",
-                            fontSize = 30.sp,
-                            fontWeight = FontWeight.Bold,
-                            modifier = Modifier.clickable(
-                                interactionSource = interactionSource,
-                                indication = null
 
-                            ) {
-                                sizeState += 10.dp
-                                cornerRadiusState += 10.dp
-                                Log.i("Main", "corner: $cornerRadiusState, size: $sizeState")
-                            }
-                        )
-                        Text(
-                            text = "DECREASE",
-                            fontSize = 30.sp,
-                            fontWeight = FontWeight.Bold,
-                            modifier = Modifier.clickable(
-                                interactionSource = interactionSource,
-                                indication = null
-
-                            ) {
-                                if (sizeState > 150.dp) {
-                                    sizeState -= 10.dp
+                Column(
+                    modifier = Modifier
+                        .fillMaxSize(),
+                    horizontalAlignment = Alignment.CenterHorizontally,
+                    verticalArrangement = Arrangement.Center
+                ) {
+                    Box(
+                        modifier = Modifier
+                            .size(size)
+                            .background(color, shape = RoundedCornerShape(cornerRadiusState)),
+                        contentAlignment = Alignment.Center
+                    )
+                    {
+                        Column(
+                            modifier = Modifier
+                                .width(sizeBorderValue)
+                                .height(sizeBorderValue),
+                            verticalArrangement = Arrangement.SpaceEvenly
+                        ) {
+                            Text(
+                                text = "INCREASE",
+                                fontSize = 30.sp,
+                                fontWeight = FontWeight.Bold,
+                                modifier = Modifier
+                                    .clickable(
+                                    interactionSource = interactionSource,
+                                    indication = null
+                                ) {
+                                    clickCountState += 1
+                                    sizeState += sizeChangeValue
+                                    cornerRadiusState += cornerChangeValue
+                                    //Log.i("Main", "corner: $cornerRadiusState, size: $sizeState")
                                 }
-                                if(cornerRadiusState >= 20.dp){
-                                    cornerRadiusState -= 10.dp
+                            )
+                            Text(
+                                text = "DECREASE",
+                                fontSize = 30.sp,
+                                fontWeight = FontWeight.Bold,
+                                modifier = Modifier
+                                    .clickable(
+                                    interactionSource = interactionSource,
+                                    indication = null
+                                ) {
+                                    clickCountState += 1
+                                    if (cornerRadiusState >= (cornerChangeValue * 1) && sizeState > sizeBorderValue) {
+                                        cornerRadiusState -= cornerChangeValue
+                                        sizeState -= sizeChangeValue
+                                    }
                                 }
-                            }
-                        )
+                            )
+                        }
                     }
                 }
             }
